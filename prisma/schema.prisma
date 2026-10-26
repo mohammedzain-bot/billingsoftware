@@ -1,0 +1,246 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  role         String      @default("CASHIER") // OWNER, MANAGER, CASHIER, INVENTORY
+  phone        String?
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  invoices     Invoice[]
+}
+
+model BusinessProfile {
+  id                String   @id @default("default")
+  name              String   @default("Apex Retail & Supermart")
+  tagline           String   @default("Quality Products & Smart Billing")
+  logoUrl           String?
+  gstin             String?  @default("27AABCU9603R1ZM")
+  phone             String   @default("+91 98765 43210")
+  email             String   @default("contact@apexretail.in")
+  address           String   @default("Shop No. 14, Galaxy Arcade, MG Road")
+  city              String   @default("Mumbai")
+  state             String   @default("Maharashtra")
+  pincode           String   @default("400001")
+  currency          String   @default("INR")
+  currencySymbol    String   @default("₹")
+  invoicePrefix     String   @default("INV-")
+  invoiceCounter    Int      @default(1001)
+  defaultTaxRate    Float    @default(18.0)
+  printPaperSize    String   @default("A4") // A4, THERMAL_80MM
+  returnPolicy      String?  @default("Items in original condition can be exchanged within 7 days with invoice.")
+  termsAndConditions String? @default("Thank you for your business! Goods once sold can be returned per store policy.")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id             String           @id @default(cuid())
+  name           String
+  sku            String           @unique
+  barcode        String?          @unique
+  description    String?
+  categoryId     String?
+  category       Category?        @relation(fields: [categoryId], references: [id])
+  purchaseCost   Float            @default(0.0)
+  sellingPrice   Float            @default(0.0)
+  taxRate        Float            @default(18.0) // 0, 5, 12, 18, 28
+  stock          Int              @default(0)
+  minStockAlert  Int              @default(5)
+  unit           String           @default("pcs") // pcs, kg, g, ltr, box
+  imageUrl       String?
+  hasVariants    Boolean          @default(false)
+  variants       ProductVariant[]
+  stockMovements StockMovement[]
+  invoiceItems   InvoiceItem[]
+  purchaseItems  PurchaseItem[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model ProductVariant {
+  id             String          @id @default(cuid())
+  productId      String
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name           String          // e.g. "Size: L / Color: Navy"
+  sku            String          @unique
+  barcode        String?
+  purchaseCost   Float           @default(0.0)
+  sellingPrice   Float           @default(0.0)
+  stock          Int             @default(0)
+  stockMovements StockMovement[]
+  createdAt      DateTime        @default(now())
+}
+
+model StockMovement {
+  id           String          @id @default(cuid())
+  productId    String
+  product      Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId    String?
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+  type         String          // SALE, PURCHASE, RETURN, ADJUSTMENT, INITIAL
+  quantity     Int             // Positive or negative delta
+  balanceAfter Int
+  unitCost     Float?
+  reason       String?
+  referenceId  String?         // Invoice ID or Purchase ID
+  userName     String?
+  createdAt    DateTime        @default(now())
+}
+
+model Customer {
+  id                 String    @id @default(cuid())
+  name               String
+  phone              String    @unique
+  email              String?
+  address            String?
+  gstin              String?
+  totalPurchases     Float     @default(0.0)
+  outstandingBalance Float     @default(0.0)
+  invoices           Invoice[]
+  payments           Payment[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model Supplier {
+  id             String         @id @default(cuid())
+  name           String
+  contactPerson  String?
+  phone          String
+  email          String?
+  address        String?
+  gstin          String?
+  totalPurchases Float          @default(0.0)
+  balance        Float          @default(0.0)
+  purchases      Purchase[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  customerId     String?
+  customer       Customer?     @relation(fields: [customerId], references: [id])
+  customerName   String        @default("Walk-in Customer")
+  customerPhone  String?
+  subtotal       Float
+  taxAmount      Float
+  discountAmount Float         @default(0.0)
+  grandTotal     Float
+  paidAmount     Float         @default(0.0)
+  balanceAmount  Float         @default(0.0)
+  paymentStatus  String        @default("PAID") // PAID, PARTIAL, UNPAID
+  paymentMethod  String        @default("CASH") // CASH, UPI, CARD, BANK_TRANSFER, CREDIT, SPLIT
+  splitDetails   String?       // JSON: {"cash": 200, "upi": 300}
+  status         String        @default("COMPLETED") // COMPLETED, CANCELLED, RETURNED
+  returnReason   String?
+  returnedAt     DateTime?
+  notes          String?
+  createdById    String?
+  createdBy      User?         @relation(fields: [createdById], references: [id])
+  items          InvoiceItem[]
+  payments       Payment[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id             String   @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id])
+  variantId      String?
+  productName    String
+  productSku     String
+  quantity       Int
+  unitCost       Float    // Historical purchase cost for profit computation
+  unitPrice      Float    // Historical selling price
+  taxRate        Float
+  taxAmount      Float
+  discountAmount Float    @default(0.0)
+  lineTotal      Float
+}
+
+model Payment {
+  id              String    @id @default(cuid())
+  invoiceId       String?
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  amount          Float
+  paymentMethod   String    // CASH, UPI, CARD, BANK_TRANSFER
+  referenceNumber String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+}
+
+model Purchase {
+  id             String         @id @default(cuid())
+  purchaseNumber String         @unique
+  supplierId     String
+  supplier       Supplier       @relation(fields: [supplierId], references: [id])
+  totalAmount    Float
+  paidAmount     Float          @default(0.0)
+  balanceAmount  Float          @default(0.0)
+  status         String         @default("COMPLETED") // COMPLETED, PENDING, CANCELLED
+  notes          String?
+  items          PurchaseItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id          String   @id @default(cuid())
+  purchaseId  String
+  purchase    Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  variantId   String?
+  productName String
+  quantity    Int
+  unitCost    Float
+  lineTotal   Float
+}
+
+model Expense {
+  id            String   @id @default(cuid())
+  category      String   // Rent, Electricity, Salaries, Stationery, Marketing, Maintenance, Other
+  description   String
+  amount        Float
+  paymentMethod String   @default("CASH")
+  date          DateTime @default(now())
+  receiptUrl    String?
+  createdAt     DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,134 @@
+{
+  "businessProfile": {
+    "id": "default",
+    "name": "Apex Supermart & Retail",
+    "tagline": "Quality Products & Smart Billing Solutions",
+    "gstin": "27AABCU9603R1ZM",
+    "phone": "+91 98765 43210",
+    "email": "store@apexretail.in",
+    "address": "Shop No. 12-14, Ground Floor, Phoenix Marketcity, Kurla West",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "pincode": "400070",
+    "currency": "INR",
+    "currencySymbol": "₹",
+    "invoicePrefix": "INV-",
+    "invoiceCounter": 1046,
+    "defaultTaxRate": 18,
+    "printPaperSize": "A4",
+    "returnPolicy": "Items in sellable condition with original tags can be exchanged within 7 days.",
+    "termsAndConditions": "Thank you for shopping with us! In case of disputes, Mumbai jurisdiction applies.",
+    "createdAt": "2026-10-26T15:32:53.019Z",
+    "updatedAt": "2026-10-26T15:32:53.019Z"
+  },
+  "users": [
+    {
+      "id": "usr_owner",
+      "name": "Rajesh Sharma",
+      "email": "owner@apexretail.in",
+      "passwordHash": "$2a$10$/aU8YbHS8YAnp2/u2qsIf.sFbDbfDZw6UbMO/Z/cz35GNu1.jyzpO",
+      "role": "OWNER",
+      "phone": "+91 98200 11223",
+      "active": true,
+      "createdAt": "2026-10-26T15:32:53.019Z",
+      "updatedAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "usr_manager",
+      "name": "Neha Kapoor",
+      "email": "manager@apexretail.in",
+      "passwordHash": "$2a$10$/aU8YbHS8YAnp2/u2qsIf.OEnXvn3VeaM9KwK0GZVYw8Ors6rqPAi",
+      "role": "MANAGER",
+      "phone": "+91 98200 44556",
+      "active": true,
+      "createdAt": "2026-10-26T15:32:53.019Z",
+      "updatedAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "usr_cashier",
+      "name": "Vikas Kumar",
+      "email": "cashier@apexretail.in",
+      "passwordHash": "$2a$10$/aU8YbHS8YAnp2/u2qsIf.tdYQCYQcUVSWVxF7ucXGppvup4CW9mm",
+      "role": "CASHIER",
+      "phone": "+91 98200 77889",
+      "active": true,
+      "createdAt": "2026-10-26T15:32:53.019Z",
+      "updatedAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "usr_inventory",
+      "name": "Anil Jadhav",
+      "email": "inventory@apexretail.in",
+      "passwordHash": "$2a$10$/aU8YbHS8YAnp2/u2qsIf.FJoQlS0dqZHByy60N5/IE8Olo1.ZmCC",
+      "role": "INVENTORY",
+      "phone": "+91 98200 99001",
+      "active": true,
+      "createdAt": "2026-10-26T15:32:53.019Z",
+      "updatedAt": "2026-10-26T15:32:53.019Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_gen",
+      "name": "General",
+      "description": "General retail items",
+      "createdAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "cat_groc",
+      "name": "Groceries & Staples",
+      "description": "Grains, pulses, oils and daily essentials",
+      "createdAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "cat_elec",
+      "name": "Electronics & Audio",
+      "description": "Cables, chargers, gadgets and accessories",
+      "createdAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "cat_app",
+      "name": "Clothing & Apparel",
+      "description": "Shirts, t-shirts, and apparel",
+      "createdAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "cat_pc",
+      "name": "Personal Care & Hygiene",
+      "description": "Soaps, handwashes, and personal care",
+      "createdAt": "2026-10-26T15:32:53.019Z"
+    },
+    {
+      "id": "cat_home",
+      "name": "Home & Kitchen",
+      "description": "Bottles, utensils, and home storage",
+      "createdAt": "2026-10-26T15:32:53.019Z"
+    }
+  ],
+  "products": [],
+  "customers": [],
+  "suppliers": [],
+  "invoices": [],
+  "purchases": [],
+  "stockMovements": [],
+  "expenses": [],
+  "auditLogs": [
+    {
+      "id": "cmvpf1cmczr9ky",
+      "userId": "usr_owner",
+      "userName": "Rajesh Sharma",
+      "action": "USER_LOGIN",
+      "entity": "AUTH",
+      "details": "User Rajesh Sharma logged in successfully as OWNER",
+      "createdAt": "2026-10-26T15:32:54.180Z"
+    },
+    {
+      "id": "aud_1",
+      "userName": "System Administrator",
+      "action": "SYSTEM_BOOTSTRAP",
+      "entity": "DATABASE",
+      "details": "Retail POS Database initialized with clean catalog and accounts",
+      "createdAt": "2026-10-26T15:32:53.019Z"
+    }
+  ]
+}
