@@ -1,9 +1,43 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import bcrypt from 'bcryptjs';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'retail_database.json');
+// In-memory global cache so serverless functions reuse data without constant disk access
+const globalForDb = global as unknown as { cachedDb?: DatabaseSchema };
+
+function getStoragePaths() {
+  const isVercel = Boolean(process.env.VERCEL) || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+  // Try local project directory first if not running in a serverless environment
+  if (!isVercel) {
+    try {
+      const localDataDir = path.join(process.cwd(), 'data');
+      if (!fs.existsSync(localDataDir)) {
+        fs.mkdirSync(localDataDir, { recursive: true });
+      }
+      const testFile = path.join(localDataDir, '.write_test');
+      fs.writeFileSync(testFile, 'ok');
+      fs.unlinkSync(testFile);
+      return {
+        dataDir: localDataDir,
+        dbFile: path.join(localDataDir, 'retail_database.json'),
+        seedFile: path.join(localDataDir, 'retail_database.json'),
+      };
+    } catch {
+      // Local dir is read-only, fallback to tmpdir below
+    }
+  }
+
+  // Serverless / Vercel: /tmp is the only writable directory in Lambda
+  const tmpDir = os.tmpdir();
+  const bundledSeed = path.join(process.cwd(), 'data', 'retail_database.json');
+  return {
+    dataDir: tmpDir,
+    dbFile: path.join(tmpDir, 'retail_database.json'),
+    seedFile: bundledSeed,
+  };
+}
 
 export interface User {
   id: string;
@@ -251,8 +285,13 @@ function generateId(): string {
 }
 
 function ensureDataDirectory() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  const { dataDir } = getStoragePaths();
+  try {
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+  } catch (err) {
+    console.warn('Could not ensure data directory:', err);
   }
 }
 
@@ -377,28 +416,73 @@ function getInitialDatabase(): DatabaseSchema {
 }
 
 export function getDatabase(): DatabaseSchema {
+  // Return cached in-memory database if already loaded in this process
+  if (globalForDb.cachedDb) {
+    return globalForDb.cachedDb;
+  }
+
+  const { dbFile, seedFile } = getStoragePaths();
   ensureDataDirectory();
-  if (!fs.existsSync(DB_FILE)) {
-    const initial = getInitialDatabase();
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), 'utf-8');
-    return initial;
+
+  // 1. Try reading existing database from writable location
+  if (fs.existsSync(dbFile)) {
+    try {
+      const raw = fs.readFileSync(dbFile, 'utf-8');
+      const parsed = JSON.parse(raw) as DatabaseSchema;
+      globalForDb.cachedDb = parsed;
+      return parsed;
+    } catch (err) {
+      console.warn('Error reading dbFile, checking fallback:', err);
+    }
   }
+
+  // 2. If not found in writable path, try loading bundled seed from repository
+  if (seedFile && fs.existsSync(seedFile)) {
+    try {
+      const raw = fs.readFileSync(seedFile, 'utf-8');
+      const parsed = JSON.parse(raw) as DatabaseSchema;
+      globalForDb.cachedDb = parsed;
+      try {
+        fs.writeFileSync(dbFile, raw, 'utf-8');
+      } catch (e) {
+        console.warn('Could not mirror seed to dbFile:', e);
+      }
+      return parsed;
+    } catch (err) {
+      console.warn('Error reading seedFile:', err);
+    }
+  }
+
+  // 3. Fallback to clean default initial database
+  const initial = getInitialDatabase();
+  globalForDb.cachedDb = initial;
   try {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(raw) as DatabaseSchema;
+    fs.writeFileSync(dbFile, JSON.stringify(initial, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Error reading DB, re-initializing:', err);
-    const initial = getInitialDatabase();
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), 'utf-8');
-    return initial;
+    console.warn('Could not write initial DB to disk (running in-memory):', err);
   }
+  return initial;
 }
 
 export function saveDatabase(data: DatabaseSchema) {
+  // Always update in-memory state immediately
+  globalForDb.cachedDb = data;
+
+  const { dbFile } = getStoragePaths();
   ensureDataDirectory();
-  const tempFile = `${DB_FILE}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tempFile, DB_FILE);
+
+  const tempFile = `${dbFile}.tmp`;
+  try {
+    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tempFile, dbFile);
+  } catch (err) {
+    console.warn('Atomic file write failed, trying direct write:', err);
+    try {
+      fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e2) {
+      console.warn('Direct file write also failed (data preserved in memory):', e2);
+    }
+  }
 }
 
 export { generateId };
